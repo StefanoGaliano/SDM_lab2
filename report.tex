@@ -365,13 +365,39 @@ programmer explicitly enumerating every relationship type in the query.
 \section{Section B — Implementation}
 % ─────────────────────────────────────────────────────────────────────────────
 
+\subsection{Deployment}
+
+The entire pipeline is automated by a single shell script (\texttt{run.sh}),
+which requires only Docker and Python to be installed.  Running it performs
+four steps in sequence:
+
+\begin{enumerate}[noitemsep]
+  \item Starts (or reuses) a \texttt{ontotext/graphdb:10.7.6} Docker container
+        on port 7200, configured with \texttt{-Xmx2000m} and the large-upload
+        size flag.
+  \item Installs Python dependencies (\texttt{rdflib}, \texttt{requests}).
+  \item Builds the RDF graph and serialises it to \texttt{biomedical\_kg.ttl}.
+  \item Programmatically creates the \texttt{biomedical} repository in GraphDB
+        (if it does not exist) and uploads the Turtle file via the REST API.
+\end{enumerate}
+
+\begin{lstlisting}[style=sparql, caption={run.sh — single entry point.},
+                   morekeywords={docker,pip,python3,run,start}]
+#!/usr/bin/env bash
+docker run -d --name graphdb -p 7200:7200 \
+  -e GDB_JAVA_OPTS="-Xmx2000m -Xms1000m \
+      -Dgraphdb.workbench.maxUploadSize=40000000000" \
+  ontotext/graphdb:10.7.6
+
+pip install -q rdflib requests
+python3 build_kg.py
+\end{lstlisting}
+
 \subsection{Python Script}
 
-The knowledge graph is built programmatically with the \texttt{rdflib} Python
-library (file: \texttt{build\_kg.py}) and serialised to
-\texttt{biomedical\_kg.ttl} in Turtle format.
-
-The script is organised in four logical blocks:
+The knowledge graph is built with the \texttt{rdflib} library
+(\texttt{build\_kg.py}) and uploaded to GraphDB via the REST API.
+The script has five logical blocks:
 
 \begin{enumerate}[noitemsep]
   \item \textbf{Metamodel declarations} — \texttt{rdfs:Class},
@@ -382,22 +408,26 @@ The script is organised in four logical blocks:
   \item \textbf{Relationship triples} — \texttt{treats}, \texttt{relieves},
         \texttt{worsens} facts derived from clinical knowledge.
   \item \textbf{Serialisation} — \texttt{g.serialize(format="turtle")} writes
-        the Turtle file.
+        \texttt{biomedical\_kg.ttl}.
+  \item \textbf{GraphDB upload} — waits for the server, creates the repository
+        using a Turtle configuration file posted as a multipart form to
+        \texttt{/rest/repositories}, then uploads the triples via
+        \texttt{POST /repositories/biomedical/statements}.
 \end{enumerate}
-
-A representative excerpt:
 
 \begin{lstlisting}[style=python, caption={Core structure of build\_kg.py.}]
 from rdflib import Graph, Namespace, RDF, RDFS
+import requests
 
 BIO = Namespace("http://www.example.org/biomedical#")
 g = Graph()
 g.bind("bio", BIO)
 
 # Metamodel
-g.add((BIO.Drug,    RDF.type, RDFS.Class))
-g.add((BIO.Disease, RDF.type, RDFS.Class))
+g.add((BIO.Drug,     RDF.type, RDFS.Class))
+g.add((BIO.Disease,  RDF.type, RDFS.Class))
 g.add((BIO.AntiInflammatory, RDFS.subClassOf, BIO.Drug))
+# ... (all subclasses)
 
 g.add((BIO.affects,  RDF.type,           RDF.Property))
 g.add((BIO.affects,  RDFS.domain,        BIO.Drug))
@@ -407,13 +437,26 @@ g.add((BIO.relieves, RDFS.subPropertyOf, BIO.affects))
 g.add((BIO.worsens,  RDFS.subPropertyOf, BIO.affects))
 
 # Facts (sample)
-g.add((BIO.Ibuprofen,    RDF.type,       BIO.AntiInflammatory))
-g.add((BIO.Ibuprofen,    BIO.relieves,   BIO.Arthritis))
-g.add((BIO.Amoxicillin,  BIO.treats,     BIO.Pneumonia))
-g.add((BIO.Ibuprofen,    BIO.worsens,    BIO.ChronicKidneyDisease))
+g.add((BIO.Ibuprofen,   RDF.type,     BIO.AntiInflammatory))
+g.add((BIO.Ibuprofen,   BIO.relieves, BIO.Arthritis))
+g.add((BIO.Amoxicillin, BIO.treats,   BIO.Pneumonia))
+g.add((BIO.Ibuprofen,   BIO.worsens,  BIO.ChronicKidneyDisease))
 
 g.serialize(destination="biomedical_kg.ttl", format="turtle")
+
+# Repository creation via Turtle config (multipart POST)
+requests.post("http://localhost:7200/rest/repositories",
+    files={"config": ("config.ttl", REPO_CONFIG_TTL, "text/turtle")})
+
+# Triple upload
+with open("biomedical_kg.ttl", "rb") as f:
+    requests.post("http://localhost:7200/repositories/biomedical/statements",
+        data=f, headers={"Content-Type": "text/turtle"})
 \end{lstlisting}
+
+The repository is created with the \textbf{RDFS (Optimized)} ruleset
+(\texttt{rdfsplus-optimized}), which is GraphDB's full RDFS entailment regime
+that materialises inferred triples at load time.
 
 \subsection{Graph Statistics}
 
@@ -436,25 +479,32 @@ Metamodel and model declarations                 & 29 \\
 \end{tabular}
 \end{table}
 
-\subsection{GraphDB Repository Setup}
-
-\begin{enumerate}[noitemsep]
-  \item Open GraphDB Workbench at \texttt{http://localhost:7200/}.
-  \item Create a new repository: choose \textbf{GraphDB Repository}, set
-        ID to \texttt{biomedical}, select ruleset
-        \textbf{RDFS (Optimized)}.
-  \item Under \emph{Advanced}, set JVM options:
-        \texttt{-Xmx2000m} and
-        \texttt{graphdb.workbench.maxUploadSize=40000000000}.
-  \item Import \texttt{biomedical\_kg.ttl} via \emph{Import → RDF Files}.
-  \item Verify inferred triples are present by running the SPARQL queries
-        in Section C.
-\end{enumerate}
-
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Section C — Querying}
 % ─────────────────────────────────────────────────────────────────────────────
 
+\subsection{Assumptions}
+
+\begin{itemize}[noitemsep]
+  \item GraphDB is running with the \textbf{RDFS (Optimized)} ruleset
+        (\texttt{rdfsplus-optimized}), which materialises inferred triples at
+        load time so that SPARQL queries over the default graph see both
+        explicit and inferred triples.
+  \item The equivalent Neo4j graph stores the same 100 nodes and 76
+        relationships, but uses flat labels (\texttt{:Drug},
+        \texttt{:AntiInflammatory}, \ldots) and typed relationships
+        (\texttt{:TREATS}, \texttt{:RELIEVES}, \texttt{:WORSENS}) with no
+        schema hierarchy.  Every node that should match a ``drug'' query carries
+        both the specific label (e.g.\ \texttt{:Antibiotic}) and the general
+        label (\texttt{:Drug}) — these must be added explicitly by the data
+        loader; they are not derived.
+  \item SPARQL queries use the namespace prefix
+        \texttt{bio: <http://www.example.org/biomedical\#>}.
+  \item \texttt{SELECT DISTINCT} is used throughout to suppress any duplicate
+        bindings that could arise from multiple inferred paths to the same triple.
+\end{itemize}
+
+% ── Query 1 ───────────────────────────────────────────────────────────────────
 \subsection{Query 1 — List All Drugs}
 
 \begin{lstlisting}[style=sparql, caption={SPARQL: list all drugs.}]
@@ -474,22 +524,51 @@ RETURN d.name AS drug
 ORDER BY drug
 \end{lstlisting}
 
-\textbf{Expected result}: 50 drugs.
+\subsubsection*{Comparison with Neo4j}
 
-\textbf{Inferences applied by GraphDB}:
-This query relies on the RDFS rule \textbf{rdfs9} (subclass propagation):
-if \texttt{X rdfs:subClassOf Y} and \texttt{a rdf:type X}, then infer
-\texttt{a rdf:type Y}.
-None of the 50 drug instances are explicitly typed as \texttt{bio:Drug}; they
-are typed as \texttt{AntiInflammatory}, \texttt{Antibiotic}, etc.  GraphDB
-materialises \texttt{?drug rdf:type bio:Drug} for all 50 instances through the
-chain \texttt{AntiInflammatory rdfs:subClassOf Drug}, etc.
+The surface syntax is very similar, but the \emph{semantics} differ
+fundamentally.  In the SPARQL version, \texttt{bio:Drug} is a class in an RDFS
+hierarchy; querying it returns all instances of any subclass without listing
+them.  In the Cypher version, \texttt{:Drug} is a plain label — it only
+matches nodes that carry exactly that label.  For the Cypher query to return
+all 50 drug nodes, the data loader must have added the \texttt{:Drug} label to
+every antibiotic, analgesic, steroid, etc.\ node at creation time.  If a new
+drug subclass is added later, the Cypher query automatically includes its nodes
+only if the loader remembered to apply the \texttt{:Drug} label — there is no
+schema to enforce this.  In SPARQL, adding a new subclass
+(\texttt{bio:Antifungal rdfs:subClassOf bio:Drug}) is sufficient; the query
+needs no modification.
 
-\textbf{Neo4j comparison}: In Neo4j each node must carry the \texttt{Drug} label
-explicitly (or a query must \texttt{UNION} all subtype labels).  There is no
-equivalent inheritance mechanism; the developer must maintain redundant labels
-or write more complex queries.
+\subsubsection*{Inferences applied by GraphDB}
 
+The query pattern \texttt{?drug rdf:type bio:Drug} triggers RDFS rule
+\textbf{rdfs9}:
+
+\[
+  \frac{X\ \texttt{rdfs:subClassOf}\ Y \quad a\ \texttt{rdf:type}\ X}
+       {a\ \texttt{rdf:type}\ Y}
+\]
+
+None of the 50 drug instances are explicitly typed as \texttt{bio:Drug} in the
+uploaded Turtle file; they are typed only as their leaf class.  GraphDB
+materialises the following inferred triples (one per instance, five subclass
+chains):
+
+\begin{lstlisting}[style=turtle]
+bio:Ibuprofen        rdf:type  bio:Drug .  # via AntiInflammatory subClassOf Drug
+bio:Amoxicillin      rdf:type  bio:Drug .  # via Antibiotic       subClassOf Drug
+bio:Paracetamol      rdf:type  bio:Drug .  # via Analgesic        subClassOf Drug
+bio:Oseltamivir      rdf:type  bio:Drug .  # via Antiviral        subClassOf Drug
+bio:Prednisone       rdf:type  bio:Drug .  # via Steroid          subClassOf Drug
+# ... 45 more (one per remaining instance)
+\end{lstlisting}
+
+\textbf{Is this what was expected?}\ Yes.  The RDFS (Optimized) ruleset
+guarantees rdfs9 is applied transitively.  With only one level of subclassing
+here, each inferred \texttt{rdf:type bio:Drug} triple is produced in a single
+rule application.  The query returns exactly 50 results, as expected.
+
+% ── Query 2 ───────────────────────────────────────────────────────────────────
 \subsection{Query 2 — List All Diseases}
 
 \begin{lstlisting}[style=sparql, caption={SPARQL: list all diseases.}]
@@ -509,14 +588,33 @@ RETURN d.name AS disease
 ORDER BY disease
 \end{lstlisting}
 
-\textbf{Expected result}: 50 diseases.
+\subsubsection*{Comparison with Neo4j}
 
-\textbf{Inferences applied by GraphDB}: Identical mechanism to Query 1 —
-RDFS rule rdfs9 propagates \texttt{rdf:type bio:Disease} to all instances
-typed as \texttt{InflammatoryDisease}, \texttt{InfectiousDisease},
-\texttt{ChronicDisease}, and \texttt{NeurologicalDisease}.
+Identical structural argument as Query 1.  The Cypher query works only because
+every disease node was given the \texttt{:Disease} label in addition to its
+specific label (\texttt{:InflammatoryDisease}, etc.) at load time.  The SPARQL
+query works because RDFS subclass inference makes it unnecessary to assert the
+general type explicitly.  The two queries produce the same result set, but
+one relies on inference while the other relies on redundant labelling.
 
-\subsection{Query 3 — All (Drug, Disease) Pairs Where Drug Affects Disease}
+\subsubsection*{Inferences applied by GraphDB}
+
+The same rdfs9 rule applies across four subclass chains:
+
+\begin{lstlisting}[style=turtle]
+bio:Arthritis          rdf:type  bio:Disease .  # via InflammatoryDisease subClassOf Disease
+bio:Pneumonia          rdf:type  bio:Disease .  # via InfectiousDisease   subClassOf Disease
+bio:Diabetes           rdf:type  bio:Disease .  # via ChronicDisease      subClassOf Disease
+bio:Migraine           rdf:type  bio:Disease .  # via NeurologicalDisease subClassOf Disease
+# ... 46 more
+\end{lstlisting}
+
+\textbf{Is this what was expected?}\ Yes.  The four disease subclasses cover all
+50 instances and the inference chain is one hop, so GraphDB produces exactly 50
+inferred \texttt{rdf:type bio:Disease} triples and the query returns 50 results.
+
+% ── Query 3 ───────────────────────────────────────────────────────────────────
+\subsection{Query 3 — Drug–Disease Pairs Where Drug Affects Disease}
 
 \begin{lstlisting}[style=sparql, caption={SPARQL: all drug--disease interaction pairs.}]
 PREFIX bio: <http://www.example.org/biomedical#>
@@ -534,64 +632,126 @@ RETURN d.name AS drug, dis.name AS disease
 ORDER BY drug, disease
 \end{lstlisting}
 
-\textbf{Expected result}: 76 pairs (29 treats + 33 relieves + 14 worsens).
+\subsubsection*{Comparison with Neo4j}
 
-\textbf{Inferences applied by GraphDB}:
-This query relies on the RDFS rule \textbf{rdfs7} (subproperty propagation):
-if \texttt{P rdfs:subPropertyOf Q} and \texttt{a P b}, then infer
-\texttt{a Q b}.
-No \texttt{bio:affects} triple is ever explicitly asserted; all 76 are
-inferred.  For example:
-\begin{itemize}[noitemsep]
-  \item \texttt{bio:Ibuprofen bio:relieves bio:Arthritis} (explicit)
-        $\Rightarrow$ \texttt{bio:Ibuprofen bio:affects bio:Arthritis} (inferred).
-  \item \texttt{bio:Amoxicillin bio:treats bio:Pneumonia} (explicit)
-        $\Rightarrow$ \texttt{bio:Amoxicillin bio:affects bio:Pneumonia} (inferred).
-\end{itemize}
+This is the query where the two models diverge most sharply.
+In SPARQL, a single triple pattern on \texttt{bio:affects} retrieves all 76
+pairs — \texttt{bio:affects} is never explicitly used in the data, but RDFS
+infers it from the three subproperties.  In Cypher, there is no concept of a
+property superset; the query must enumerate all three relationship types
+using the \texttt{|} union syntax.  If a fourth relationship type (e.g.\
+\texttt{:PREVENTS}) were added, the Cypher query would silently omit it unless
+the developer remembered to update the pattern.  The SPARQL query would include
+it automatically, provided only that the new property is declared
+\texttt{rdfs:subPropertyOf bio:affects}.
 
-Additionally, \texttt{rdfs:domain} and \texttt{rdfs:range} on
-\texttt{bio:affects} enable GraphDB to infer (via rdfs2/rdfs3) that any
-subject of an \texttt{affects} triple is a \texttt{Drug} and any object is a
-\texttt{Disease}, which further enriches the graph with additional
-\texttt{rdf:type} assertions.
+A further difference is expressiveness: Neo4j has no way to write a query
+equivalent to ``find all drug–disease pairs connected by \emph{any} relationship
+that is a subtype of \texttt{affects}'' without explicitly naming the subtypes.
+RDFS makes this possible through a single abstract property.
 
-\textbf{Neo4j comparison}: The Cypher query must enumerate every specific
-relationship type explicitly.  If a new type (e.g., \texttt{PREVENTS}) is
-added later, every query that should match it must be updated.  The RDFS graph
-only requires declaring the new property as \texttt{rdfs:subPropertyOf affects};
-all existing queries remain correct automatically.
+\subsubsection*{Inferences applied by GraphDB}
 
+Two rules cooperate here.
+
+\textbf{Rule rdfs7} (subproperty propagation):
+\[
+  \frac{P\ \texttt{rdfs:subPropertyOf}\ Q \quad a\ P\ b}
+       {a\ Q\ b}
+\]
+
+Applied to every explicit relationship triple, this produces 76 inferred
+\texttt{bio:affects} triples — one for each asserted
+\texttt{treats}/\texttt{relieves}/\texttt{worsens} fact.  Examples:
+
+\begin{lstlisting}[style=turtle]
+# Explicit:
+bio:Ibuprofen    bio:relieves  bio:Arthritis .
+bio:Amoxicillin  bio:treats    bio:Pneumonia .
+bio:Ibuprofen    bio:worsens   bio:ChronicKidneyDisease .
+
+# Inferred via rdfs7:
+bio:Ibuprofen    bio:affects   bio:Arthritis .
+bio:Amoxicillin  bio:affects   bio:Pneumonia .
+bio:Ibuprofen    bio:affects   bio:ChronicKidneyDisease .
+\end{lstlisting}
+
+\textbf{Rules rdfs2 and rdfs3} (domain and range typing): since
+\texttt{bio:affects} has \texttt{rdfs:domain bio:Drug} and
+\texttt{rdfs:range bio:Disease}, GraphDB additionally materialises:
+
+\begin{lstlisting}[style=turtle]
+# For every subject of an affects triple (via rdfs2):
+bio:Ibuprofen    rdf:type  bio:Drug    .
+bio:Amoxicillin  rdf:type  bio:Drug    .
+
+# For every object of an affects triple (via rdfs3):
+bio:Arthritis    rdf:type  bio:Disease .
+bio:Pneumonia    rdf:type  bio:Disease .
+\end{lstlisting}
+
+Note that these domain/range inferences \emph{overlap} with the rdfs9 subclass
+inferences from Queries 1 and 2.  Both paths produce the same
+\texttt{rdf:type bio:Drug} and \texttt{rdf:type bio:Disease} triples, which
+GraphDB deduplicates.  This redundancy is harmless and actually desirable: it
+means the typing is robust even if one inference path were to fail.
+
+\textbf{Is this what was expected?}\ Yes, and it is the most compelling
+demonstration of RDFS reasoning in this graph.  The property
+\texttt{bio:affects} is a pure ontological abstraction — it exists only in the
+schema and is never typed into the data layer.  Yet querying it against a live
+GraphDB repository with RDFS (Optimized) returns all 76 drug–disease
+interactions, sourced from three semantically distinct relationship types,
+without any \texttt{UNION} or enumeration in the query.
+
+% ── Summary ───────────────────────────────────────────────────────────────────
 \subsection{Summary of Inferred Triple Patterns}
 
 \begin{table}[h!]
 \centering
-\caption{Inferred triple patterns and the RDFS rules that produce them.}
-\renewcommand{\arraystretch}{1.3}
-\begin{tabular}{@{}p{5cm}p{3.2cm}p{5cm}@{}}
+\caption{All inferred triple patterns, the RDFS rules that produce them, and a
+         concrete example for each.}
+\renewcommand{\arraystretch}{1.35}
+\begin{tabular}{@{}p{4.6cm}p{1.8cm}p{7cm}@{}}
 \toprule
-\textbf{Pattern} & \textbf{Rule} & \textbf{Example} \\
+\textbf{Inferred pattern} & \textbf{Rule} & \textbf{Concrete example} \\
 \midrule
-\texttt{?x rdf:type bio:Drug} inferred from subclass &
+\texttt{?x rdf:type bio:Drug} &
 rdfs9 &
-\texttt{Ibuprofen rdf:type Drug} from \texttt{AntiInflammatory subClassOf Drug} \\
-\texttt{?x rdf:type bio:Disease} inferred from subclass &
+\texttt{Ibuprofen rdf:type Drug} derived from
+\texttt{Ibuprofen rdf:type AntiInflammatory} and
+\texttt{AntiInflammatory subClassOf Drug}. \\
+
+\texttt{?x rdf:type bio:Disease} &
 rdfs9 &
-\texttt{Arthritis rdf:type Disease} from \texttt{InflammatoryDisease subClassOf Disease} \\
-\texttt{?d bio:affects ?dis} inferred from subproperty &
+\texttt{Arthritis rdf:type Disease} derived from
+\texttt{Arthritis rdf:type InflammatoryDisease} and
+\texttt{InflammatoryDisease subClassOf Disease}. \\
+
+\texttt{?d bio:affects ?dis} &
 rdfs7 &
-\texttt{Ibuprofen affects Arthritis} from \texttt{relieves subPropertyOf affects} \\
-\texttt{?d rdf:type bio:Drug} from domain &
+\texttt{Ibuprofen affects Arthritis} derived from
+\texttt{Ibuprofen relieves Arthritis} and
+\texttt{relieves subPropertyOf affects}. \\
+
+\texttt{?d rdf:type bio:Drug} (from domain) &
 rdfs2 &
-Any subject of a \texttt{treats/relieves/worsens} triple inferred to be a Drug \\
-\texttt{?d rdf:type bio:Disease} from range &
+\texttt{Amoxicillin rdf:type Drug} derived from
+\texttt{Amoxicillin treats Pneumonia} and
+\texttt{affects rdfs:domain Drug} (cascades via rdfs7). \\
+
+\texttt{?dis rdf:type bio:Disease} (from range) &
 rdfs3 &
-Any object of a \texttt{treats/relieves/worsens} triple inferred to be a Disease \\
+\texttt{Pneumonia rdf:type Disease} derived from
+\texttt{Amoxicillin treats Pneumonia} and
+\texttt{affects rdfs:range Disease}. \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-All of the above patterns match expectations: the RDFS (Optimized) ruleset in
-GraphDB implements the full RDFS entailment regime, so every derivable triple
-is materialised before queries run.
+\noindent All five patterns behave as expected.  The RDFS (Optimized) ruleset
+in GraphDB implements the complete RDFS entailment regime.  Every inferred triple
+is materialised into the repository before query evaluation begins, so query
+performance is not affected by the number of inference steps required.
 
 \end{document}

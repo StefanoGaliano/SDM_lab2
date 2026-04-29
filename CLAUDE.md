@@ -33,8 +33,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Three interconnected sections:**
 
 1. **Section A (Modeling)** — RDFS model design
-   - Graphical representation of metamodel (schema classes, properties), model layer (taxonomy hierarchy), and facts layer (instances)
-   - Justify design choices (e.g., why use property hierarchy for `affects` → {treats, relieves, worsens})
+   - Graphical representation of metamodel (schema classes, properties), model layer (taxonomy hierarchy), and facts layer (instances) done in the "rdfs_biomedical_kg_three_layers.svg"
+   - Design choices: (Three-Layer Architecture
+Metamodel Layer (top, purple/teal) — This layer contains the RDFS vocabulary constructs themselves: rdfs:Class, rdf:Property, rdfs:subClassOf, rdfs:domain, rdfs:range, and rdfs:subPropertyOf. These are not invented concepts — they are the W3C-standardized building blocks that give the model its formal semantics and reasoning power.
+Model Layer (middle, blue) — This is the ontology schema. It defines bio:Drug and bio:Disease as rdfs:Classes, their subclasses (bio:AntiInflammatory, bio:Antibiotic, bio:InflammatoryDisease, bio:InfectiousDisease), and the property hierarchy with bio:affects as the super-property and bio:treats, bio:relieves, bio:worsens declared as rdfs:subPropertyOf bio:affects.
+Facts Layer (bottom, green) — Concrete named individuals: bio:Ibuprofen, bio:Amoxicillin, bio:Arthritis, bio:BacterialInfection, and bio:GastricUlcer, each linked by rdf:type to their class, and connected by the specific properties.
+
+Key Modeling Decisions
+Property hierarchy (rdfs:subPropertyOf): bio:treats, bio:relieves, and bio:worsens are all declared as sub-properties of bio:affects. This means any triple using one of the specific properties automatically entails the more general bio:affects triple via RDFS inference — a query for "all drug–disease pairs where the drug affects the disease" returns results even if only bio:relieves was asserted. Neo4J cannot express this: its RELIEVES, TREATS, and WORSENS edge types are flat and unrelated; there is no mechanism to group them under a common abstraction.
+Class hierarchy (rdfs:subClassOf): bio:AntiInflammatory rdfs:subClassOf bio:Drug means that any instance typed as AntiInflammatory is automatically also inferred to be a Drug. A query for "all drugs" returns bio:Ibuprofen even though it was only asserted as AntiInflammatory. Neo4J uses multiple labels on nodes (:Drug:AntiInflammatory) which is not a formal hierarchy — it is manual duplication, not inference.
+rdfs:domain and rdfs:range: The super-property bio:affects is declared with rdfs:domain bio:Drug and rdfs:range bio:Disease. This lets GraphDB infer the type of any entity that participates in this property, even without explicit rdf:type assertions — enabling data quality validation and richer reasoning.
+Minimizing redundancy: Thanks to inference, we assert only the most specific facts (e.g., bio:Ibuprofen rdf:type bio:AntiInflammatory) and let RDFS derive the rest (rdf:type bio:Drug, bio:affects bio:Arthritis, etc.). Neo4J requires all facts to be explicitly written.
+Global IRIs: All terms are given proper namespace-qualified IRIs (e.g., bio:Drug), following Linked Data best practices for interoperability. Neo4J labels are plain strings with no formal identity.)
    - Identify what RDFS does that Neo4j property graphs don't (ontological structure, inference)
 
 2. **Section B (Implementation)** — RDFLib + GraphDB
