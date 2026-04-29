@@ -1,0 +1,324 @@
+@prefix bio: <http://www.example.org/biomedical#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+bio:Analgesic a rdfs:Class ;
+    rdfs:subClassOf bio:Drug .
+
+bio:AntiInflammatory a rdfs:Class ;
+    rdfs:subClassOf bio:Drug .
+
+bio:Antibiotic a rdfs:Class ;
+    rdfs:subClassOf bio:Drug .
+
+bio:Antiviral a rdfs:Class ;
+    rdfs:subClassOf bio:Drug .
+
+bio:ChronicDisease a rdfs:Class ;
+    rdfs:subClassOf bio:Disease .
+
+bio:Disease a rdfs:Class .
+
+bio:Drug a rdfs:Class .
+
+bio:InfectiousDisease a rdfs:Class ;
+    rdfs:subClassOf bio:Disease .
+
+bio:InflammatoryDisease a rdfs:Class ;
+    rdfs:subClassOf bio:Disease .
+
+bio:NeurologicalDisease a rdfs:Class ;
+    rdfs:subClassOf bio:Disease .
+
+bio:Steroid a rdfs:Class ;
+    rdfs:subClassOf bio:Drug .
+
+bio:ALS a bio:NeurologicalDisease .
+
+bio:Acyclovir a bio:Antiviral ;
+    bio:treats bio:Meningitis .
+
+bio:AlzheimerDisease a bio:ChronicDisease .
+
+bio:Amoxicillin a bio:Antibiotic ;
+    bio:treats bio:Cholera,
+        bio:Pneumonia .
+
+bio:Ampicillin a bio:Antibiotic ;
+    bio:treats bio:Pneumonia .
+
+bio:Anemia a bio:ChronicDisease .
+
+bio:Aspirin a bio:AntiInflammatory ;
+    bio:relieves bio:HeartDisease ;
+    bio:worsens bio:Asthma .
+
+bio:Azithromycin a bio:Antibiotic ;
+    bio:treats bio:Pneumonia,
+        bio:Salmonellosis .
+
+bio:Beclomethasone a bio:Steroid ;
+    bio:relieves bio:Asthma .
+
+bio:Betamethasone a bio:Steroid ;
+    bio:relieves bio:Psoriasis .
+
+bio:Budesonide a bio:Steroid ;
+    bio:relieves bio:Asthma,
+        bio:CrohnsDisease .
+
+bio:Buprenorphine a bio:Analgesic ;
+    bio:relieves bio:Neuropathy .
+
+bio:COPD a bio:ChronicDisease .
+
+bio:Celecoxib a bio:AntiInflammatory ;
+    bio:relieves bio:Arthritis,
+        bio:RheumatoidArthritis .
+
+bio:Ciprofloxacin a bio:Antibiotic ;
+    bio:treats bio:Shigellosis,
+        bio:Typhoid .
+
+bio:Clarithromycin a bio:Antibiotic ;
+    bio:treats bio:Tuberculosis .
+
+bio:Codeine a bio:Analgesic ;
+    bio:relieves bio:Neuropathy ;
+    bio:worsens bio:Epilepsy .
+
+bio:Cortisone a bio:Steroid ;
+    bio:worsens bio:Diabetes,
+        bio:Hypertension .
+
+bio:Dengue a bio:InfectiousDisease .
+
+bio:Dexamethasone a bio:Steroid ;
+    bio:treats bio:Meningitis ;
+    bio:worsens bio:Osteoporosis .
+
+bio:Diclofenac a bio:AntiInflammatory ;
+    bio:relieves bio:RheumatoidArthritis,
+        bio:Tendinitis .
+
+bio:Dihydrocodeine a bio:Analgesic .
+
+bio:Doxycycline a bio:Antibiotic ;
+    bio:treats bio:LymeDisease,
+        bio:Malaria ;
+    bio:worsens bio:HeartDisease .
+
+bio:Dystonia a bio:NeurologicalDisease .
+
+bio:Erythromycin a bio:Antibiotic ;
+    bio:treats bio:Pneumonia .
+
+bio:Fentanyl a bio:Analgesic .
+
+bio:Fluticasone a bio:Steroid ;
+    bio:relieves bio:Asthma,
+        bio:Eczema .
+
+bio:Gabapentin a bio:Analgesic ;
+    bio:relieves bio:Epilepsy,
+        bio:Neuropathy,
+        bio:Sciatica .
+
+bio:Hemophilia a bio:ChronicDisease .
+
+bio:Hydrocodone a bio:Analgesic .
+
+bio:Hydrocortisone a bio:Steroid ;
+    bio:relieves bio:Eczema,
+        bio:Psoriasis ;
+    bio:worsens bio:Hypertension .
+
+bio:Ibuprofen a bio:AntiInflammatory ;
+    bio:relieves bio:Arthritis,
+        bio:Fibromyalgia,
+        bio:Migraine ;
+    bio:worsens bio:ChronicKidneyDisease .
+
+bio:Indomethacin a bio:AntiInflammatory ;
+    bio:relieves bio:Gout ;
+    bio:worsens bio:HeartDisease .
+
+bio:Ketoprofen a bio:AntiInflammatory .
+
+bio:Lamivudine a bio:Antiviral ;
+    bio:treats bio:Hepatitis .
+
+bio:Lopinavir a bio:Antiviral ;
+    bio:treats bio:HIV .
+
+bio:Meloxicam a bio:AntiInflammatory ;
+    bio:relieves bio:Arthritis .
+
+bio:Methylprednisolone a bio:Steroid ;
+    bio:treats bio:MultipleSclerosis .
+
+bio:Metronidazole a bio:Antibiotic ;
+    bio:treats bio:CrohnsDisease,
+        bio:UlcerativeColitis ;
+    bio:worsens bio:Epilepsy .
+
+bio:Morphine a bio:Analgesic ;
+    bio:relieves bio:Sciatica .
+
+bio:Naproxen a bio:AntiInflammatory ;
+    bio:relieves bio:Gout,
+        bio:RheumatoidArthritis,
+        bio:Spondylitis ;
+    bio:worsens bio:HeartDisease .
+
+bio:Narcolepsy a bio:NeurologicalDisease .
+
+bio:Oseltamivir a bio:Antiviral ;
+    bio:treats bio:Influenza .
+
+bio:Oxycodone a bio:Analgesic ;
+    bio:relieves bio:Sciatica .
+
+bio:Paracetamol a bio:Analgesic ;
+    bio:relieves bio:Migraine .
+
+bio:ParkinsonsDisease a bio:NeurologicalDisease .
+
+bio:Penicillin a bio:Antibiotic ;
+    bio:treats bio:Pneumonia .
+
+bio:Piroxicam a bio:AntiInflammatory .
+
+bio:Prednisone a bio:Steroid ;
+    bio:relieves bio:Asthma ;
+    bio:treats bio:Lupus,
+        bio:Vasculitis ;
+    bio:worsens bio:Diabetes,
+        bio:Osteoporosis .
+
+bio:Remdesivir a bio:Antiviral ;
+    bio:treats bio:COVID19 .
+
+bio:Ribavirin a bio:Antiviral ;
+    bio:treats bio:Hepatitis .
+
+bio:Ritonavir a bio:Antiviral ;
+    bio:treats bio:HIV .
+
+bio:Stroke a bio:NeurologicalDisease .
+
+bio:Sulindac a bio:AntiInflammatory .
+
+bio:Tenofovir a bio:Antiviral ;
+    bio:treats bio:HIV .
+
+bio:Tetracycline a bio:Antibiotic ;
+    bio:treats bio:Cholera .
+
+bio:Thalassemia a bio:ChronicDisease .
+
+bio:TouretteSyndrome a bio:NeurologicalDisease .
+
+bio:Tramadol a bio:Analgesic ;
+    bio:relieves bio:Fibromyalgia,
+        bio:Neuropathy ;
+    bio:worsens bio:Epilepsy .
+
+bio:Triamcinolone a bio:Steroid ;
+    bio:relieves bio:RheumatoidArthritis .
+
+bio:Valacyclovir a bio:Antiviral ;
+    bio:treats bio:Encephalitis .
+
+bio:Vertigo a bio:NeurologicalDisease .
+
+bio:Zidovudine a bio:Antiviral ;
+    bio:treats bio:HIV .
+
+bio:relieves a rdf:Property ;
+    rdfs:subPropertyOf bio:affects .
+
+bio:treats a rdf:Property ;
+    rdfs:subPropertyOf bio:affects .
+
+bio:worsens a rdf:Property ;
+    rdfs:subPropertyOf bio:affects .
+
+bio:COVID19 a bio:InfectiousDisease .
+
+bio:ChronicKidneyDisease a bio:ChronicDisease .
+
+bio:Encephalitis a bio:NeurologicalDisease .
+
+bio:Influenza a bio:InfectiousDisease .
+
+bio:Lupus a bio:InflammatoryDisease .
+
+bio:LymeDisease a bio:InfectiousDisease .
+
+bio:Malaria a bio:InfectiousDisease .
+
+bio:MultipleSclerosis a bio:ChronicDisease .
+
+bio:Salmonellosis a bio:InfectiousDisease .
+
+bio:Shigellosis a bio:InfectiousDisease .
+
+bio:Spondylitis a bio:InflammatoryDisease .
+
+bio:Tendinitis a bio:InflammatoryDisease .
+
+bio:Tuberculosis a bio:InfectiousDisease .
+
+bio:Typhoid a bio:InfectiousDisease .
+
+bio:UlcerativeColitis a bio:InflammatoryDisease .
+
+bio:Vasculitis a bio:InflammatoryDisease .
+
+bio:Cholera a bio:InfectiousDisease .
+
+bio:CrohnsDisease a bio:InflammatoryDisease .
+
+bio:Diabetes a bio:ChronicDisease .
+
+bio:Eczema a bio:InflammatoryDisease .
+
+bio:Fibromyalgia a bio:InflammatoryDisease .
+
+bio:Gout a bio:InflammatoryDisease .
+
+bio:Hepatitis a bio:InfectiousDisease .
+
+bio:Hypertension a bio:ChronicDisease .
+
+bio:Meningitis a bio:NeurologicalDisease .
+
+bio:Migraine a bio:NeurologicalDisease .
+
+bio:Osteoporosis a bio:ChronicDisease .
+
+bio:Psoriasis a bio:InflammatoryDisease .
+
+bio:Arthritis a bio:InflammatoryDisease .
+
+bio:Sciatica a bio:NeurologicalDisease .
+
+bio:affects a rdf:Property ;
+    rdfs:domain bio:Drug ;
+    rdfs:range bio:Disease .
+
+bio:Epilepsy a bio:ChronicDisease .
+
+bio:HIV a bio:InfectiousDisease .
+
+bio:HeartDisease a bio:ChronicDisease .
+
+bio:Neuropathy a bio:NeurologicalDisease .
+
+bio:RheumatoidArthritis a bio:InflammatoryDisease .
+
+bio:Asthma a bio:InflammatoryDisease .
+
+bio:Pneumonia a bio:InfectiousDisease .
+
