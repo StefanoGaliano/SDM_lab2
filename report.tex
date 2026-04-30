@@ -75,12 +75,11 @@
 % ── Title ─────────────────────────────────────────────────────────────────────
 \title{\textbf{SDM Lab 2 — RDFS Biomedical Knowledge Graph}\\[0.4em]
        \large Semantic Data Management}
-\author{Stefano Galiano}
+\author{Stefano Galiano and Pablo Rodriguez}
 \date{April 2026}
 
 \begin{document}
 \maketitle
-\tableofcontents
 \newpage
 
 % ─────────────────────────────────────────────────────────────────────────────
@@ -182,9 +181,7 @@ bio:Disease
 \end{verbatim}
 
 Each subclass is declared with \texttt{rdfs:subClassOf} pointing to its
-immediate parent.  No deeper nesting is introduced here because the assignment
-scope does not require it; the four drug groups and four disease groups
-provide sufficient semantic granularity to demonstrate RDFS reasoning.
+immediate parent.
 
 \subsubsection*{Property Hierarchy}
 
@@ -195,14 +192,7 @@ bio:affects          (domain: bio:Drug  |  range: bio:Disease)
     bio:worsens      -- subPropertyOf bio:affects
 \end{verbatim}
 
-The three specific properties capture semantically distinct relationships.
-\texttt{treats} denotes a therapeutic action aimed at curing or eliminating a
-disease (typically antibiotics/antivirals curing infections).
-\texttt{relieves} denotes symptom alleviation without necessarily curing the
-underlying condition (e.g., NSAIDs relieving arthritis pain).
-\texttt{worsens} captures contraindications — situations where a drug
-negatively affects a co-morbid condition (e.g., ibuprofen worsening chronic
-kidney disease).
+
 
 % ── A.4 ──────────────────────────────────────────────────────────────────────
 \subsection{Facts Layer}
@@ -249,22 +239,9 @@ will derive all \texttt{affects} triples automatically via the
 \begin{lstlisting}[style=turtle, caption={Sample Turtle triples from the facts layer.}]
 bio:Ibuprofen       rdf:type          bio:AntiInflammatory .
 bio:Ibuprofen       bio:relieves      bio:Arthritis .
-bio:Ibuprofen       bio:relieves      bio:Migraine .
-bio:Ibuprofen       bio:worsens       bio:ChronicKidneyDisease .
-
+bio:Ibuprofen       bio:worsens       bio:ChronicKidneyDisease 
 bio:Amoxicillin     rdf:type          bio:Antibiotic .
 bio:Amoxicillin     bio:treats        bio:Pneumonia .
-bio:Amoxicillin     bio:treats        bio:Cholera .
-
-bio:Remdesivir      rdf:type          bio:Antiviral .
-bio:Remdesivir      bio:treats        bio:COVID19 .
-
-bio:Gabapentin      rdf:type          bio:Analgesic .
-bio:Gabapentin      bio:relieves      bio:Neuropathy .
-bio:Gabapentin      bio:relieves      bio:Epilepsy .
-
-bio:Arthritis       rdf:type          bio:InflammatoryDisease .
-bio:COVID19         rdf:type          bio:InfectiousDisease .
 \end{lstlisting}
 
 In total the graph contains 76 explicit relationship triples (29 \texttt{treats},
@@ -276,24 +253,19 @@ metamodel and model declarations.
 
 \paragraph{Why a property hierarchy for \texttt{affects}?}
 A single abstract property \texttt{affects} unifies the three specific
-relationships under one semantic umbrella.  This lets users write a single
-SPARQL query for "all drug–disease interactions" without knowing in advance
+relationships.  This lets users write a single
+SPARQL query for "all drug–disease interactions" without knowing 
 whether the relationship is therapeutic, symptomatic, or contraindicated.
 Without this hierarchy, a query would need a \texttt{UNION} of three triple
 patterns; with it, querying \texttt{bio:affects} suffices.
 
 \paragraph{Why minimise explicit triples?}
-The quality criterion for this assignment is to rely on RDFS inference rather
-than asserting every derivable triple.  We never assert
-\texttt{bio:Ibuprofen rdf:type bio:Drug} explicitly — GraphDB derives it from
+To rely on RDFS inference rather
+than asserting every derivable triple. By never asserting
+\texttt{bio:Ibuprofen rdf:type bio:Drug} explicitly; GraphDB derives it from
 \texttt{Ibuprofen rdf:type AntiInflammatory} and
 \texttt{AntiInflammatory rdfs:subClassOf Drug}.
-Similarly, we never assert \texttt{bio:Ibuprofen bio:affects bio:Arthritis}
-— GraphDB derives it from
-\texttt{Ibuprofen relieves Arthritis} and
-\texttt{relieves subPropertyOf affects}.
-This approach reduces graph size, eliminates the risk of inconsistent
-redundancies, and tests whether the reasoning engine operates correctly.
+This approach reduces graph size, eliminates the risk of inconsistent redundancies.
 
 \paragraph{Why \texttt{rdfs:domain} and \texttt{rdfs:range} only on \texttt{affects}?}
 Declaring constraints at the most general level and relying on inheritance
@@ -302,57 +274,10 @@ subproperties inherit domain/range, but GraphDB's RDFS (Optimized) ruleset
 does apply the standard RDFS-entailment rules (rdfs4, rdfs7, rdfs9) so this
 works as expected.
 
-\paragraph{Why five drug subclasses and four disease subclasses?}
-The number of subclasses was chosen to reflect clinically meaningful groupings
-(anti-inflammatories, antibiotics, analgesics, antivirals, steroids) while
-keeping the graph tractable.  Steroids are separated from
-anti-inflammatories because their mechanism of action (corticosteroid pathway)
-differs from NSAIDs, which are the canonical anti-inflammatory agents.
+
 
 % ── A.6 ──────────────────────────────────────────────────────────────────────
 \subsection{RDFS Knowledge Graph vs.\ Neo4j Property Graph}
-
-Table~\ref{tab:comparison} compares the two paradigms on the axes most relevant
-to this assignment.
-
-\begin{table}[h!]
-\centering
-\caption{RDFS knowledge graph vs.\ Neo4j property graph.}
-\label{tab:comparison}
-\renewcommand{\arraystretch}{1.3}
-\begin{tabular}{@{}p{3.2cm}p{5.4cm}p{5.4cm}@{}}
-\toprule
-\textbf{Aspect} & \textbf{RDFS Knowledge Graph} & \textbf{Neo4j Property Graph} \\
-\midrule
-\textbf{Class hierarchy} &
-  Explicit \texttt{rdfs:subClassOf} chain; querying a parent class returns all
-  subclass instances automatically. &
-  Node labels are flat; no inheritance.  A query for \texttt{Drug} returns only
-  nodes with that exact label — not \texttt{Antibiotic} nodes unless explicitly
-  listed. \\
-\textbf{Property hierarchy} &
-  \texttt{rdfs:subPropertyOf} means a query on \texttt{affects} returns
-  \texttt{treats}, \texttt{relieves}, and \texttt{worsens} results. &
-  Relationship types are independent; a \texttt{MATCH (d)-[:affects]->()} query
-  finds nothing unless that type was created explicitly.  A \texttt{UNION} of
-  the three specific types is required. \\
-\textbf{Inference} &
-  RDFS entailment rules run automatically at query time (or during materialisation).
-  No extra query complexity. &
-  No built-in inference engine.  Every derivable fact must be either asserted
-  explicitly or reconstructed at query time via extra \texttt{MATCH} clauses. \\
-\textbf{Schema standards} &
-  W3C RDF/RDFS; machine-interpretable, interoperable, integrable with OWL. &
-  Proprietary Labeled Property Graph model; optimised for graph traversal but
-  not for semantic interoperability. \\
-\textbf{Minimising redundancy} &
-  Facts are stated once at the most specific level; all generalizations are
-  inferred. &
-  Every fact that should be queryable must be explicitly present.  A new drug
-  class requires updating all queries that should match it. \\
-\bottomrule
-\end{tabular}
-\end{table}
 
 \noindent \textbf{Key gap}: the capability that RDFS provides and Neo4j does not is
 \emph{ontological inference} — the ability to derive new facts from structural
@@ -360,44 +285,22 @@ constraints (subclass, subproperty, domain, range) without rewriting queries
 or duplicating data.  A Neo4j property graph can store the same raw facts, but
 it cannot answer ``find all drugs that affect any disease'' without a
 programmer explicitly enumerating every relationship type in the query.
+Explicit \texttt{rdfs:subClassOf} chain; querying a parent class returns all
+  subclass instances automatically.
+Node labels are flat; no inheritance.  A query for \texttt{Drug} returns only
+  nodes with that exact label — not \texttt{Antibiotic} nodes unless explicitly
+  listed.
+Facts are stated once at the most specific level; all generalizations are inferred. 
+Every fact that should be queryable must be explicitly present.  A new drug class requires updating all queries that should match it.
+
+
+
 
 % ─────────────────────────────────────────────────────────────────────────────
 \section{Section B — Implementation}
 % ─────────────────────────────────────────────────────────────────────────────
 
-\subsection{Deployment}
-
-The entire pipeline is automated by a single shell script (\texttt{run.sh}),
-which requires only Docker and Python to be installed.  Running it performs
-four steps in sequence:
-
-\begin{enumerate}[noitemsep]
-  \item Starts (or reuses) a \texttt{ontotext/graphdb:10.7.6} Docker container
-        on port 7200, configured with \texttt{-Xmx2000m} and the large-upload
-        size flag.
-  \item Installs Python dependencies (\texttt{rdflib}, \texttt{requests}).
-  \item Builds the RDF graph and serialises it to \texttt{biomedical\_kg.ttl}.
-  \item Programmatically creates the \texttt{biomedical} repository in GraphDB
-        (if it does not exist) and uploads the Turtle file via the REST API.
-\end{enumerate}
-
-\begin{lstlisting}[style=sparql, caption={run.sh — single entry point.},
-                   morekeywords={docker,pip,python3,run,start}]
-#!/usr/bin/env bash
-docker run -d --name graphdb -p 7200:7200 \
-  -e GDB_JAVA_OPTS="-Xmx2000m -Xms1000m \
-      -Dgraphdb.workbench.maxUploadSize=40000000000" \
-  ontotext/graphdb:10.7.6
-
-pip install -q rdflib requests
-python3 build_kg.py
-\end{lstlisting}
-
-\subsection{Python Script}
-
-The knowledge graph is built with the \texttt{rdflib} library
-(\texttt{build\_kg.py}) and uploaded to GraphDB via the REST API.
-The script has five logical blocks:
+The knowledge graph has five logical blocks:
 
 \begin{enumerate}[noitemsep]
   \item \textbf{Metamodel declarations} — \texttt{rdfs:Class},
@@ -415,54 +318,15 @@ The script has five logical blocks:
         \texttt{POST /repositories/biomedical/statements}.
 \end{enumerate}
 
-\begin{lstlisting}[style=python, caption={Core structure of build\_kg.py.}]
-from rdflib import Graph, Namespace, RDF, RDFS
-import requests
-
-BIO = Namespace("http://www.example.org/biomedical#")
-g = Graph()
-g.bind("bio", BIO)
-
-# Metamodel
-g.add((BIO.Drug,     RDF.type, RDFS.Class))
-g.add((BIO.Disease,  RDF.type, RDFS.Class))
-g.add((BIO.AntiInflammatory, RDFS.subClassOf, BIO.Drug))
-# ... (all subclasses)
-
-g.add((BIO.affects,  RDF.type,           RDF.Property))
-g.add((BIO.affects,  RDFS.domain,        BIO.Drug))
-g.add((BIO.affects,  RDFS.range,         BIO.Disease))
-g.add((BIO.treats,   RDFS.subPropertyOf, BIO.affects))
-g.add((BIO.relieves, RDFS.subPropertyOf, BIO.affects))
-g.add((BIO.worsens,  RDFS.subPropertyOf, BIO.affects))
-
-# Facts (sample)
-g.add((BIO.Ibuprofen,   RDF.type,     BIO.AntiInflammatory))
-g.add((BIO.Ibuprofen,   BIO.relieves, BIO.Arthritis))
-g.add((BIO.Amoxicillin, BIO.treats,   BIO.Pneumonia))
-g.add((BIO.Ibuprofen,   BIO.worsens,  BIO.ChronicKidneyDisease))
-
-g.serialize(destination="biomedical_kg.ttl", format="turtle")
-
-# Repository creation via Turtle config (multipart POST)
-requests.post("http://localhost:7200/rest/repositories",
-    files={"config": ("config.ttl", REPO_CONFIG_TTL, "text/turtle")})
-
-# Triple upload
-with open("biomedical_kg.ttl", "rb") as f:
-    requests.post("http://localhost:7200/repositories/biomedical/statements",
-        data=f, headers={"Content-Type": "text/turtle"})
-\end{lstlisting}
-
-The repository is created with the \textbf{RDFS (Optimized)} ruleset
+We created the script by  the \textbf{RDFS (Optimized)} ruleset
 (\texttt{rdfsplus-optimized}), which is GraphDB's full RDFS entailment regime
 that materialises inferred triples at load time.
 
-\subsection{Graph Statistics}
-
+We added 100 instances that follow triple counts as it is seen in Table~\ref{tab:counts}
 \begin{table}[h!]
 \centering
 \caption{Triple counts in the generated graph.}
+\label{tab:counts}
 \begin{tabular}{@{}lr@{}}
 \toprule
 \textbf{Category} & \textbf{Count} \\
@@ -531,24 +395,15 @@ fundamentally.  In the SPARQL version, \texttt{bio:Drug} is a class in an RDFS
 hierarchy; querying it returns all instances of any subclass without listing
 them.  In the Cypher version, \texttt{:Drug} is a plain label — it only
 matches nodes that carry exactly that label.  For the Cypher query to return
-all 50 drug nodes, the data loader must have added the \texttt{:Drug} label to
-every antibiotic, analgesic, steroid, etc.\ node at creation time.  If a new
-drug subclass is added later, the Cypher query automatically includes its nodes
-only if the loader remembered to apply the \texttt{:Drug} label — there is no
+all 50 drug nodes, but if a new
+drug subclass is added later, only if the \texttt{:Drug} label is applied will it work but there is no
 schema to enforce this.  In SPARQL, adding a new subclass
 (\texttt{bio:Antifungal rdfs:subClassOf bio:Drug}) is sufficient; the query
 needs no modification.
 
 \subsubsection*{Inferences applied by GraphDB}
 
-The query pattern \texttt{?drug rdf:type bio:Drug} triggers RDFS rule
-\textbf{rdfs9}:
-
-\[
-  \frac{X\ \texttt{rdfs:subClassOf}\ Y \quad a\ \texttt{rdf:type}\ X}
-       {a\ \texttt{rdf:type}\ Y}
-\]
-
+The query pattern \texttt{?drug rdf:type bio:Drug} triggers RDFS rule \textbf{rdfs9}
 None of the 50 drug instances are explicitly typed as \texttt{bio:Drug} in the
 uploaded Turtle file; they are typed only as their leaf class.  GraphDB
 materialises the following inferred triples (one per instance, five subclass
@@ -558,15 +413,9 @@ chains):
 bio:Ibuprofen        rdf:type  bio:Drug .  # via AntiInflammatory subClassOf Drug
 bio:Amoxicillin      rdf:type  bio:Drug .  # via Antibiotic       subClassOf Drug
 bio:Paracetamol      rdf:type  bio:Drug .  # via Analgesic        subClassOf Drug
-bio:Oseltamivir      rdf:type  bio:Drug .  # via Antiviral        subClassOf Drug
-bio:Prednisone       rdf:type  bio:Drug .  # via Steroid          subClassOf Drug
 # ... 45 more (one per remaining instance)
 \end{lstlisting}
 
-\textbf{Is this what was expected?}\ Yes.  The RDFS (Optimized) ruleset
-guarantees rdfs9 is applied transitively.  With only one level of subclassing
-here, each inferred \texttt{rdf:type bio:Drug} triple is produced in a single
-rule application.  The query returns exactly 50 results, as expected.
 
 % ── Query 2 ───────────────────────────────────────────────────────────────────
 \subsection{Query 2 — List All Diseases}
@@ -605,13 +454,9 @@ The same rdfs9 rule applies across four subclass chains:
 bio:Arthritis          rdf:type  bio:Disease .  # via InflammatoryDisease subClassOf Disease
 bio:Pneumonia          rdf:type  bio:Disease .  # via InfectiousDisease   subClassOf Disease
 bio:Diabetes           rdf:type  bio:Disease .  # via ChronicDisease      subClassOf Disease
-bio:Migraine           rdf:type  bio:Disease .  # via NeurologicalDisease subClassOf Disease
 # ... 46 more
 \end{lstlisting}
 
-\textbf{Is this what was expected?}\ Yes.  The four disease subclasses cover all
-50 instances and the inference chain is one hop, so GraphDB produces exactly 50
-inferred \texttt{rdf:type bio:Disease} triples and the query returns 50 results.
 
 % ── Query 3 ───────────────────────────────────────────────────────────────────
 \subsection{Query 3 — Drug–Disease Pairs Where Drug Affects Disease}
@@ -654,13 +499,7 @@ RDFS makes this possible through a single abstract property.
 
 Two rules cooperate here.
 
-\textbf{Rule rdfs7} (subproperty propagation):
-\[
-  \frac{P\ \texttt{rdfs:subPropertyOf}\ Q \quad a\ P\ b}
-       {a\ Q\ b}
-\]
-
-Applied to every explicit relationship triple, this produces 76 inferred
+\textbf{Rule rdfs7} (subproperty propagation): Applied to every explicit relationship triple, this produces 76 inferred
 \texttt{bio:affects} triples — one for each asserted
 \texttt{treats}/\texttt{relieves}/\texttt{worsens} fact.  Examples:
 
@@ -696,13 +535,7 @@ inferences from Queries 1 and 2.  Both paths produce the same
 GraphDB deduplicates.  This redundancy is harmless and actually desirable: it
 means the typing is robust even if one inference path were to fail.
 
-\textbf{Is this what was expected?}\ Yes, and it is the most compelling
-demonstration of RDFS reasoning in this graph.  The property
-\texttt{bio:affects} is a pure ontological abstraction — it exists only in the
-schema and is never typed into the data layer.  Yet querying it against a live
-GraphDB repository with RDFS (Optimized) returns all 76 drug–disease
-interactions, sourced from three semantically distinct relationship types,
-without any \texttt{UNION} or enumeration in the query.
+\newpage
 
 % ── Summary ───────────────────────────────────────────────────────────────────
 \subsection{Summary of Inferred Triple Patterns}
