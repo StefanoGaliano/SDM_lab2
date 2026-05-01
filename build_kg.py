@@ -23,13 +23,11 @@ g.add((BIO.Drug,    RDF.type, RDFS.Class))
 g.add((BIO.Disease, RDF.type, RDFS.Class))
 
 # Drug subclasses
-for cls in ("antiinflammatory", "antibiotic", "Analgesic", "Antiviral", "Steroid"):
-    g.add((BIO[cls], RDF.type,         RDFS.Class))
+for cls in ("antiinflammatory", "antibiotic", "analgesic", "antiviral", "steroid"):
     g.add((BIO[cls], RDFS.subClassOf,  BIO.Drug))
 
 # Disease subclasses
-for cls in ("inflammatory", "infectious", "ChronicDisease", "NeurologicalDisease"):
-    g.add((BIO[cls], RDF.type,         RDFS.Class))
+for cls in ("inflammatory", "infectious", "chronic", "neurological"):
     g.add((BIO[cls], RDFS.subClassOf,  BIO.Disease))
 
 # Properties
@@ -51,15 +49,15 @@ DRUGS = {
         "Amoxicillin", "Penicillin", "Ampicillin", "Ciprofloxacin", "Azithromycin",
         "Doxycycline", "Tetracycline", "Erythromycin", "Clarithromycin", "Metronidazole",
     ],
-    "Analgesic": [
+    "analgesic": [
         "Paracetamol", "Codeine", "Morphine", "Oxycodone", "Tramadol",
         "Fentanyl", "Hydrocodone", "Buprenorphine", "Dihydrocodeine", "Gabapentin",
     ],
-    "Antiviral": [
+    "antiviral": [
         "Acyclovir", "Oseltamivir", "Remdesivir", "Lopinavir", "Ritonavir",
         "Tenofovir", "Lamivudine", "Zidovudine", "Valacyclovir", "Ribavirin",
     ],
-    "Steroid": [
+    "steroid": [
         "Prednisone", "Cortisone", "Methylprednisolone", "Hydrocortisone", "Dexamethasone",
         "Betamethasone", "Triamcinolone", "Fluticasone", "Budesonide", "Beclomethasone",
     ],
@@ -77,12 +75,12 @@ DISEASES = {
         "COVID19", "Cholera", "Typhoid", "Dengue", "Hepatitis",
         "LymeDisease", "Salmonellosis", "Shigellosis",
     ],
-    "ChronicDisease": [
+    "chronic": [
         "Diabetes", "Hypertension", "HeartDisease", "ChronicKidneyDisease", "COPD",
         "Osteoporosis", "MultipleSclerosis", "AlzheimerDisease", "Epilepsy", "Anemia",
         "Hemophilia", "Thalassemia",
     ],
-    "NeurologicalDisease": [
+    "neurological": [
         "Migraine", "Neuropathy", "Meningitis", "Encephalitis", "Stroke",
         "ALS", "Sciatica", "ParkinsonsDisease", "Narcolepsy", "Vertigo",
         "Dystonia", "TouretteSyndrome",
