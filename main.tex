@@ -1,7 +1,7 @@
 \documentclass[11pt,a4paper]{article}
 
 \usepackage[margin=2.5cm]{geometry}
-\usepackage{hyperref}
+\usepackage[hidelinks]{hyperref}
 \usepackage{listings}
 \usepackage{xcolor}
 \usepackage{booktabs}
@@ -12,6 +12,7 @@
 \usepackage{caption}
 \usepackage{subcaption}
 \usepackage{graphicx}
+\usepackage{multirow}
 
 % ── Listing styles ────────────────────────────────────────────────────────────
 \definecolor{codebg}{rgb}{0.97,0.97,0.97}
@@ -72,19 +73,24 @@
   morekeywords={MATCH,RETURN,WHERE,WITH,CREATE,MERGE,SET,DELETE,OPTIONAL,UNION,AS,CALL,IN,IS,NOT,NULL,AND,OR},
 }
 
-% ── Title ─────────────────────────────────────────────────────────────────────
-\title{\textbf{SDM Lab 2 — RDFS Biomedical Knowledge Graph}\\[0.4em]
-       \large Semantic Data Management}
-\author{Stefano Galiano and Pablo Rodriguez}
-\date{April 2026}
-
 \begin{document}
-\maketitle
+
+% -- Title
+\pagestyle{empty}
+\input{portada}
+
+% -- Contents
+ 
+\tableofcontents
 \newpage
 
-% ─────────────────────────────────────────────────────────────────────────────
+% -- Document
+\pagestyle{plain}
+\setcounter{page}{1}
+
+
 \section{Section A — Modeling}
-% ─────────────────────────────────────────────────────────────────────────────
+
 
 \subsection{Overview}
 
@@ -114,6 +120,16 @@ The namespace used throughout is:
   \texttt{http://www.example.org/biomedical\#} \quad (prefix \texttt{bio:})
 \end{center}
 
+Here is a picture of the metamodel and model layers, as well as one example of an instance:
+
+\begin{figure}[h!]
+    \centering
+    \includegraphics[width=0.65\textwidth]{imagenes/modeling.png}
+    \caption{Metamodel, model and instance layers of the graph}
+    \label{fig:graph}
+\end{figure}
+
+
 % ── A.2 ──────────────────────────────────────────────────────────────────────
 \subsection{Metamodel Layer}
 
@@ -142,20 +158,14 @@ Table~\ref{tab:metamodel}.
 \end{table}
 
 \noindent Note that \texttt{rdfs:domain} and \texttt{rdfs:range} are declared
-only on \texttt{bio:affects}.  The three subproperties (\texttt{treats},
-\texttt{relieves}, \texttt{worsens}) \emph{inherit} these constraints through
-the property hierarchy — no redundant domain/range assertions are needed.
+only on \texttt{bio:affects}; the subproperties inherit them through the
+property hierarchy.  Likewise, \texttt{rdf:type} arrows from model-layer
+elements to metamodel-layer elements (e.g.\ \texttt{bio:Drug rdf:type
+rdfs:Class}) are not asserted explicitly — they are derived from RDFS
+built-in axioms.  Both decisions are justified in
+Section~\ref{subsec:design}.
 
-The metamodel is illustrated in Figure~\ref{fig:metamodel} (see separate diagram
-file \texttt{Diagram\_lab2.drawio}).
-
-\begin{figure}[h!]
-  \centering
-  % \includegraphics[width=0.85\textwidth]{rdfs_biomedical_kg_three_layers.svg}
-  \textit{[See Diagram\_lab2.drawio — Metamodel layer tab]}
-  \caption{Metamodel layer: RDF/RDFS constructs structuring the graph.}
-  \label{fig:metamodel}
-\end{figure}
+The metamodel layer is illustrated in the top section of Figure~\ref{fig:graph}.
 
 % ── A.3 ──────────────────────────────────────────────────────────────────────
 \subsection{Model Layer}
@@ -169,19 +179,16 @@ exist and how they are related, and which properties constitute the vocabulary.
 bio:Drug
     bio:AntiInflammatory
     bio:Antibiotic
-    bio:Analgesic
-    bio:Antiviral
-    bio:Steroid
 
 bio:Disease
     bio:InflammatoryDisease
     bio:InfectiousDisease
-    bio:ChronicDisease
-    bio:NeurologicalDisease
 \end{verbatim}
 
 Each subclass is declared with \texttt{rdfs:subClassOf} pointing to its
-immediate parent.
+immediate parent.  The implementation extends this base schema with additional
+subclasses to reach 100 instances; see Section~\ref{sec:implementation} for
+details.
 
 \subsubsection*{Property Hierarchy}
 
@@ -250,6 +257,7 @@ metamodel and model declarations.
 
 % ── A.5 ──────────────────────────────────────────────────────────────────────
 \subsection{Design Justifications}
+\label{subsec:design}
 
 \paragraph{Why a property hierarchy for \texttt{affects}?}
 A single abstract property \texttt{affects} unifies the three specific
@@ -297,8 +305,20 @@ Every fact that should be queryable must be explicitly present.  A new drug clas
 
 
 % ─────────────────────────────────────────────────────────────────────────────
+\newpage
 \section{Section B — Implementation}
+\label{sec:implementation}
 % ─────────────────────────────────────────────────────────────────────────────
+
+The base schema defined in Section~A contains two drug subclasses
+(\texttt{AntiInflammatory}, \texttt{Antibiotic}) and two disease subclasses
+(\texttt{InflammatoryDisease}, \texttt{InfectiousDisease}).  To reach the
+required 100 instances, the implementation extends the schema with three
+additional drug subclasses — \texttt{Analgesic}, \texttt{Antiviral},
+\texttt{Steroid} — and two additional disease subclasses —
+\texttt{ChronicDisease}, \texttt{NeurologicalDisease}.  All five new subclasses
+are declared with \texttt{rdfs:subClassOf} pointing to their respective root
+class, following the same pattern as the original schema.
 
 The knowledge graph has five logical blocks:
 
@@ -344,6 +364,7 @@ Metamodel and model declarations                 & 29 \\
 \end{table}
 
 % ─────────────────────────────────────────────────────────────────────────────
+\newpage
 \section{Section C — Querying}
 % ─────────────────────────────────────────────────────────────────────────────
 

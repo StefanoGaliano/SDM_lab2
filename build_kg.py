@@ -23,12 +23,12 @@ g.add((BIO.Drug,    RDF.type, RDFS.Class))
 g.add((BIO.Disease, RDF.type, RDFS.Class))
 
 # Drug subclasses
-for cls in ("AntiInflammatory", "Antibiotic", "Analgesic", "Antiviral", "Steroid"):
+for cls in ("antiinflammatory", "antibiotic", "Analgesic", "Antiviral", "Steroid"):
     g.add((BIO[cls], RDF.type,         RDFS.Class))
     g.add((BIO[cls], RDFS.subClassOf,  BIO.Drug))
 
 # Disease subclasses
-for cls in ("InflammatoryDisease", "InfectiousDisease", "ChronicDisease", "NeurologicalDisease"):
+for cls in ("inflammatory", "infectious", "ChronicDisease", "NeurologicalDisease"):
     g.add((BIO[cls], RDF.type,         RDFS.Class))
     g.add((BIO[cls], RDFS.subClassOf,  BIO.Disease))
 
@@ -43,11 +43,11 @@ for prop in ("treats", "relieves", "worsens"):
 
 # ── Facts layer – drug instances (50 total) ──────────────────────────────────
 DRUGS = {
-    "AntiInflammatory": [
+    "antiinflammatory": [
         "Ibuprofen", "Aspirin", "Naproxen", "Celecoxib", "Diclofenac",
         "Indomethacin", "Meloxicam", "Piroxicam", "Ketoprofen", "Sulindac",
     ],
-    "Antibiotic": [
+    "antibiotic": [
         "Amoxicillin", "Penicillin", "Ampicillin", "Ciprofloxacin", "Azithromycin",
         "Doxycycline", "Tetracycline", "Erythromycin", "Clarithromycin", "Metronidazole",
     ],
@@ -67,12 +67,12 @@ DRUGS = {
 
 # ── Facts layer – disease instances (50 total) ───────────────────────────────
 DISEASES = {
-    "InflammatoryDisease": [
+    "inflammatory": [
         "Arthritis", "RheumatoidArthritis", "Lupus", "Psoriasis", "Gout",
         "CrohnsDisease", "UlcerativeColitis", "Asthma", "Eczema", "Fibromyalgia",
         "Spondylitis", "Tendinitis", "Vasculitis",
     ],
-    "InfectiousDisease": [
+    "infectious": [
         "Pneumonia", "Tuberculosis", "Malaria", "HIV", "Influenza",
         "COVID19", "Cholera", "Typhoid", "Dengue", "Hepatitis",
         "LymeDisease", "Salmonellosis", "Shigellosis",
