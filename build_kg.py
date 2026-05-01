@@ -18,9 +18,6 @@ g = Graph()
 g.bind("bio", BIO)
 
 # ── Metamodel layer ──────────────────────────────────────────────────────────
-# Root classes
-g.add((BIO.Drug,    RDF.type, RDFS.Class))
-g.add((BIO.Disease, RDF.type, RDFS.Class))
 
 # Drug subclasses
 for cls in ("antiinflammatory", "antibiotic", "analgesic", "antiviral", "steroid"):
@@ -31,12 +28,11 @@ for cls in ("inflammatory", "infectious", "chronic", "neurological"):
     g.add((BIO[cls], RDFS.subClassOf,  BIO.Disease))
 
 # Properties
-g.add((BIO.affects, RDF.type,     RDF.Property))
 g.add((BIO.affects, RDFS.domain,  BIO.Drug))
 g.add((BIO.affects, RDFS.range,   BIO.Disease))
 
+# SubProperties
 for prop in ("treats", "relieves", "worsens"):
-    g.add((BIO[prop], RDF.type,             RDF.Property))
     g.add((BIO[prop], RDFS.subPropertyOf,   BIO.affects))
 
 # ── Facts layer – drug instances (50 total) ──────────────────────────────────
