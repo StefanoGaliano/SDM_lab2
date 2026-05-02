@@ -415,20 +415,18 @@ The surface syntax is very similar, but the \emph{semantics} differ
 fundamentally.  In the SPARQL version, \texttt{bio:Drug} is a class in an RDFS
 hierarchy; querying it returns all instances of any subclass without listing
 them.  In the Cypher version, \texttt{:Drug} is a plain label — it only
-matches nodes that carry exactly that label.  For the Cypher query to return
-all 50 drug nodes, but if a new
-drug subclass is added later, only if the \texttt{:Drug} label is applied will it work but there is no
-schema to enforce this.  In SPARQL, adding a new subclass
+matches nodes that carry exactly that label. The Cypher query returns all 50 drug nodes because each was manually labeled :Drug. If a new drug subclass is added later, the query will only work if the :Drug label is also applied — but Neo4j has no schema mechanism to enforce this.  In SPARQL, adding a new subclass
 (\texttt{bio:Antifungal rdfs:subClassOf bio:Drug}) is sufficient; the query
 needs no modification.
 
 \subsubsection*{Inferences applied by GraphDB}
 
-The query pattern \texttt{?drug rdf:type bio:Drug} triggers RDFS rule \textbf{rdfs9}
-None of the 50 drug instances are explicitly typed as \texttt{bio:Drug} in the
-uploaded Turtle file; they are typed only as their leaf class.  GraphDB
-materialises the following inferred triples (one per instance, five subclass
-chains):
+The query pattern \texttt{?drug rdf:type bio:Drug} triggers RDFS rule \textbf{rdfs9},
+which states: if \texttt{?u rdf:type ?C} and \texttt{?C rdfs:subClassOf ?D}, then
+infer \texttt{?u rdf:type ?D}. None of the 50 drug instances are explicitly typed
+as \texttt{bio:Drug} in the uploaded Turtle file; they are typed only as their leaf
+class. GraphDB materialises the following inferred triples (one per instance, five
+subclass chains):
 
 \begin{lstlisting}[style=turtle]
 bio:Ibuprofen        rdf:type  bio:Drug .  # via AntiInflammatory subClassOf Drug
