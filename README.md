@@ -9,6 +9,10 @@ Builds and queries an RDFS knowledge graph of drugs and diseases using RDFLib, G
 
 ## Run
 
+### Full pipeline (GraphDB + Docker)
+
+Starts GraphDB in Docker, generates the graph, creates the repository, and uploads the triples.
+
 **Linux/macOS:**
 ```bash
 ./run.sh
@@ -29,6 +33,17 @@ This will:
 5. Upload the triples
 
 Once done, open **http://localhost:7200** and select the `biomedical` repository.
+
+### Generate only the TTL file
+
+If you only need the Turtle file (no Docker or GraphDB required):
+
+```bash
+pip install rdflib
+python build_kg.py --ttl-only
+```
+
+This generates `biomedical_kg.ttl` without starting GraphDB or uploading anything.
 
 ## SPARQL Queries
 

@@ -8,6 +8,8 @@ import time
 import requests
 from rdflib import Graph, Namespace, RDF, RDFS
 
+TTL_ONLY = "--ttl-only" in sys.argv
+
 GRAPHDB_URL  = "http://localhost:7200"
 REPO_ID      = "biomedical"
 TTL_FILE     = "biomedical_kg.ttl"
@@ -282,6 +284,9 @@ def upload_triples():
         print(f"Upload failed: {r.status_code} {r.text}")
         sys.exit(1)
 
+
+if TTL_ONLY:
+    sys.exit(0)
 
 if not wait_for_graphdb():
     print("GraphDB not reachable. Is Docker running?")
