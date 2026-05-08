@@ -9,9 +9,17 @@ Builds and queries an RDFS knowledge graph of drugs and diseases using RDFLib, G
 
 ## Run
 
+**Linux/macOS:**
 ```bash
 ./run.sh
 ```
+
+**Windows (PowerShell):**
+```powershell
+.\run.ps1
+```
+
+> If execution policy blocks the script: `Set-ExecutionPolicy -Scope Process RemoteSigned`
 
 This will:
 1. Pull and start `ontotext/graphdb:10.7.6` on port 7200
@@ -76,7 +84,8 @@ Property hierarchy: `affects` ← `treats`, `relieves`, `worsens`
 
 | File | Description |
 |---|---|
-| `run.sh` | Single entry point — starts Docker and loads the graph |
+| `run.sh` | Entry point for Linux/macOS — starts Docker and loads the graph |
+| `run.ps1` | Entry point for Windows (PowerShell) — same steps as `run.sh` |
 | `build_kg.py` | Builds the RDF graph and uploads it to GraphDB |
 | `biomedical_kg.ttl` | Generated Turtle file (created by running the script) |
 | `report.tex` | Full lab report (Section A, B, C) |
